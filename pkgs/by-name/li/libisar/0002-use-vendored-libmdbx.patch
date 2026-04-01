@@ -1,0 +1,67 @@
+From 41819d2778ed7857ba608f5ab2f61d896959ea0d Mon Sep 17 00:00:00 2001
+From: azban <me@azban.net>
+Date: Tue, 31 Mar 2026 19:13:34 -0600
+Subject: [PATCH 2/2] use-vendored-libmdbx
+
+Signed-off-by: azban <me@azban.net>
+---
+ packages/mdbx_sys/build.rs | 30 ++----------------------------
+ 1 file changed, 2 insertions(+), 28 deletions(-)
+
+diff --git a/packages/mdbx_sys/build.rs b/packages/mdbx_sys/build.rs
+index 1e9ce64d..9b3a20b0 100644
+--- a/packages/mdbx_sys/build.rs
++++ b/packages/mdbx_sys/build.rs
+@@ -1,7 +1,6 @@
+ use bindgen::{Formatter, callbacks::{IntKind, ParseCallbacks}};
+-use std::{env, fs, path::{Path, PathBuf}, process::Command};
++use std::{env, fs, path::{Path, PathBuf}};
+ 
+-const LIBMDBX_REPO: &str = "https://github.com/isar-community/libmdbx.git";
+ const LIBMDBX_TAG: &str = "v0.13.8-temp-upstream-fix";
+ 
+ #[derive(Debug)]
+@@ -56,31 +55,6 @@ impl ParseCallbacks for Callbacks {
+     }
+ }
+ 
+-fn ensure_libmdbx(out_dir: &Path) -> PathBuf {
+-    let libmdbx_dir = out_dir.join("libmdbx");
+-    if libmdbx_dir.exists() {
+-        let _ = fs::remove_dir_all(&libmdbx_dir);
+-    }
+-
+-    let status = Command::new("git")
+-        .args([
+-            "clone",
+-            "--depth", "1",
+-            "--branch", LIBMDBX_TAG,
+-            "--single-branch",
+-            LIBMDBX_REPO,
+-            libmdbx_dir.to_string_lossy().as_ref(),
+-        ])
+-        .status()
+-        .expect("failed to spawn git");
+-
+-    if !status.success() {
+-        panic!("git clone of libmdbx failed with status: {}", status);
+-    }
+-
+-    libmdbx_dir
+-}
+-
+ fn parse_semver_from_tag(tag: &str) -> (u32, u32, u32, u32, &'static str) {
+     let t = tag.trim_start_matches('v');
+     let mut parts = t.split('.');
+@@ -124,7 +98,7 @@ fn generate_version_c(libmdbx_dir: &Path, tag: &str) {
+ fn main() {
+     println!("cargo:rerun-if-changed=build.rs");
+     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+-    let libmdbx_dir = ensure_libmdbx(&out_dir);
++    let libmdbx_dir = PathBuf::from(env::var("LIBMDBX_DIR").unwrap());
+ 
+     // Create src/version.c from template
+     generate_version_c(&libmdbx_dir, LIBMDBX_TAG);
+-- 
+2.51.2
+
