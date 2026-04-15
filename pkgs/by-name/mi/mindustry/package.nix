@@ -1,4 +1,5 @@
 {
+  breakpointHook,
   lib,
   stdenv,
   makeWrapper,
@@ -18,6 +19,7 @@
   alsa-lib,
   alsa-plugins,
   glew,
+  unzip,
 
   # for soloud
   libpulseaudio ? null,
@@ -38,7 +40,7 @@
 
 let
   pname = "mindustry";
-  version = "155.4";
+  version = "157.2";
   buildVersion = makeBuildVersion version;
 
   jdk = jdk17;
@@ -48,21 +50,21 @@ let
     owner = "Anuken";
     repo = "Mindustry";
     tag = "v${version}";
-    hash = "sha256-NHI+YLh4ptuAEff6NM9ZgN2haB+iZ9np7nf6iRMzgHw=";
+    hash = "sha256-wyNRezP7wo86+QPviFF2tLlJH8Tfp1nHMsKQgqADI4c=";
   };
   Arc = fetchFromGitHub {
     name = "Arc-source";
     owner = "Anuken";
     repo = "Arc";
     tag = "v${version}";
-    hash = "sha256-9nUj9aP1yAvZEDBuJPfE4ZzGEbZOSuVK+KbD1kUG+dM=";
+    hash = "sha256-fpZQbiYK4phuSY0NE5aHMgiAWfwa1Qx1Rfwwb+PRB78=";
   };
   soloud = fetchFromGitHub {
     owner = "Anuken";
     repo = "soloud";
     # This is pinned in Arc's arc-core/build.gradle
-    tag = "2025.12.01";
-    hash = "sha256-I+VZW34eRGn1RJmK8e9nVSXIFSOK/pER+xEhmXeUB4Y=";
+    tag = "2026.02.03";
+    hash = "sha256-Klng3c/AN5oYxnU+jeTnlPEThhKlpGADgmygjJRAJDg=";
   };
 
   desktopItem = makeDesktopItem {
@@ -93,16 +95,7 @@ stdenv.mkDerivation {
   '';
 
   postPatch = ''
-    # Ensure the prebuilt shared objects don't accidentally get shipped
-    rm -r Arc/natives/natives-*/libs/*
-    rm -r Arc/backends/backend-*/libs/*
-    rm -f Arc/arc-core/unsafe/unsafe.jar
-
     cd Mindustry
-
-    # Fix duplicate class entries in arc-core jar with newer Gradle
-    substituteInPlace ../Arc/arc-core/build.gradle \
-      --replace-fail 'jar{' 'jar{ duplicatesStrategy = DuplicatesStrategy.EXCLUDE'
 
     # Remove unbuildable iOS stuff
     sed -i '/^project(":ios"){/,/^}/d' build.gradle
@@ -133,6 +126,8 @@ stdenv.mkDerivation {
     gradle
     makeWrapper
     jdk
+    unzip
+    #breakpointHook
   ]
   ++ lib.optionals enableClient [
     ant
@@ -142,6 +137,9 @@ stdenv.mkDerivation {
   ];
 
   desktopItems = lib.optional enableClient desktopItem;
+  makeFlags = [
+    "CC=${stdenv.cc.targetPrefix}cc"
+  ];
 
   gradleFlags = [
     "-Pbuildversion=${buildVersion}"
@@ -160,9 +158,9 @@ stdenv.mkDerivation {
   ''
   + lib.optionalString enableClient ''
     pushd ../Arc
-    gradle jnigenBuildLinux64
+    gradle jnigenBuildLinux_x86_64
     # Copy freshly-built libraries to where Gradle resource dirs expect them.
-    # Using jnigenBuildLinux64 skips the postJni tasks, so we copy manually.
+    # Using jnigenBuildLinux_x86_64 skips the postJni tasks, so we copy manually.
     # arc-core uses relative libsDir, others use absolute which causes path doubling.
     cp arc-core/libs/linux64/* natives/natives-desktop/libs/
     cp -r backends/backend-sdl/build/Arc/backends/backend-sdl/libs/* backends/backend-sdl/libs/
@@ -234,6 +232,12 @@ stdenv.mkDerivation {
     # this fetches non-gradle dependencies
     cd ../Arc
     gradle preJni
+
+    # Ensure the prebuilt shared objects that are needed for gradle update
+    # script don't accidentally get shipped
+    # rm -rf Arc/natives/natives-*/libs/*
+    # rm -rf Arc/backends/backend-*/libs/*
+    # rm -rf Arc/arc-core/unsafe/unsafe.jar
   '';
 
   passthru.tests.nixosTest = nixosTests.mindustry;
