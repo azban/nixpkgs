@@ -12,12 +12,12 @@
   eas-cli,
 }:
 let
-  version = "18.7.0";
+  version = "20.0.0";
   src = fetchFromGitHub {
     owner = "expo";
     repo = "eas-cli";
     rev = "v${version}";
-    hash = "sha256-Z+PtS88Rv9Vv6FA15KxSBWCmOtwmTqO1etgCV7WaTXo=";
+    hash = "sha256-EuR1MLylHWpmfHgYsiE0Sp8YkqOMN2RvLWDd6FnZGq8=";
   };
   missingHashes = ./missing-hashes.json;
 in
@@ -29,7 +29,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   yarnOfflineCache = yarn-berry_4.fetchYarnBerryDeps {
     inherit src missingHashes;
-    hash = "sha256-ZlbCHWEwVaYCfzowrm1qrM1MpLo5vNmEG5bWzWT/cTU=";
+    hash = "sha256-ee83Rh6V8YxYIdLvqKo81PayrFhv9kJr22tnFI24AKE=";
   };
 
   nativeBuildInputs = [
